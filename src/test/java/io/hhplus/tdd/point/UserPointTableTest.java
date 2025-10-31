@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class UserPointTableTest {
 
@@ -85,5 +86,25 @@ public class UserPointTableTest {
         // 갱신된 Point로 되어있는 지 확인
         assertEquals(givenUser, up.id());
         assertEquals(givenPoint - useAmount, up.point());
+    }
+
+    /**
+     * 잔액이 부족하면 예외가 발생합니다.
+     */
+    @Test
+    void 잔액부족_포인트_사용시_예외가_발생한다() { // throws 절 제거
+        // given
+        long givenUser = 1L;
+        long givenPoint = 100L;
+        pointService.charge(givenUser, givenPoint);
+
+        // when & then
+        long useAmount = 200L;
+        assertThrows(RuntimeException.class,
+                () -> pointService.use(givenUser, useAmount)
+        );
+
+        // 그리고 포인트는 그대로 유지되어야 함
+        assertEquals(givenPoint, pointService.getUserPoint(givenUser).point());
     }
 }
