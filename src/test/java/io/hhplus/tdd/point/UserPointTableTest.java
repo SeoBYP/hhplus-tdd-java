@@ -117,4 +117,13 @@ public class UserPointTableTest {
         assertThrows(RuntimeException.class, () -> pointService.charge(givenUser, -10L));
     }
 
+    /**
+     * 음수 사용은 발생해서는 안됩니다.
+     */
+    @Test
+    void 음수_사용은_거부되어야_한다() { // throws 절 제거
+        long givenUser = 1L;
+        assertThrows(RuntimeException.class, () -> pointService.use(givenUser, -10L));
+    }
+
 }

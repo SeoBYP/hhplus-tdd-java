@@ -29,6 +29,8 @@ public class PointService {
 
     public UserPoint use(long userId, long amount)
     {
+        if(amount < 0)
+            throw new RuntimeException("음수로 사용은 불가능합니다.");
         // 기존에 유저가 있는 지 확인
         UserPoint oldUserPoint = userPointTable.selectById(userId);
         if(oldUserPoint.point() < amount)
