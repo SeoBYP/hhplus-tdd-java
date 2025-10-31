@@ -223,4 +223,34 @@ public class UserPointTableTest {
         assertEquals(firstCharge, history.get(1).amount(), "그 다음 충전 금액은 100이어야 한다.");
         assertEquals(0L, history.get(1).updateMillis(), "그 다음 시간은 0L여야 한다.");
     }
+
+    /**
+     * 다수의 유저가 충전시에는 구분되어서 히스토리가 기록되어야 합니다.
+     */
+    @Test
+    void 히스토리는_사용자별로_격리되어야_한다() { // throws 절 제거
+        // given
+        long givenUser_1 = 1L;
+        long givenUserPoint_1 = 100L;
+
+        long givenUser_2 = 2L;
+        long givenUserPoint_2 = 120L;
+
+        // when
+        pointService.charge(givenUser_1, givenUserPoint_1);
+        pointService.charge(givenUser_2, givenUserPoint_2);
+
+        // then
+        List<PointHistory> h1 = pointService.getUserPointHistories(givenUser_1);
+        List<PointHistory> h2 = pointService.getUserPointHistories(givenUser_2);
+
+        assertEquals(1, h1.size());
+        assertEquals(givenUser_1, h1.get(0).userId());
+        assertEquals(givenUserPoint_1, h1.get(0).amount());
+
+        assertEquals(1, h2.size());
+        assertEquals(givenUser_2, h2.get(0).userId());
+        assertEquals(givenUserPoint_2, h2.get(0).amount());
+    }
+
 }
