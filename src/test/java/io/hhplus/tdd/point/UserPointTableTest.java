@@ -48,4 +48,24 @@ public class UserPointTableTest {
         assertEquals(givenUser, up.id());
         assertEquals(givenPoint, up.point());
     }
+
+    /**
+     * 기존 유저는 기존 포인트에서 누적되어야 합니다.
+     */
+    @Test
+    void 기존_유저의_충전_테이블에_포인트가_누적된다() { // throws 절 제거
+        long givenUser = 1L;
+        long givenPoint = 100L;
+        // given
+        pointService.charge(givenUser, givenPoint);
+
+        // when & then
+        long chargeAmount = 50L;
+        UserPoint newUp = pointService.charge(givenUser, chargeAmount);
+
+        // 갱신된 Point로 되어있는 지 확인
+        assertEquals(givenUser, newUp.id());
+        assertEquals(givenPoint + chargeAmount, newUp.point());
+    }
+
 }
