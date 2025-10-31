@@ -1,21 +1,26 @@
 package io.hhplus.tdd.point;
 
+import io.hhplus.tdd.database.PointHistoryTable;
 import io.hhplus.tdd.database.UserPointTable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class UserPointTableTest {
 
     private UserPointTable userPointTable;
+    private PointHistoryTable pointHistoryTable;
     private PointService pointService;
 
     @BeforeEach
     void setUp(){
         this.userPointTable = new UserPointTable();
-        this.pointService = new PointService(this.userPointTable);
+        this.pointHistoryTable = new PointHistoryTable();
+
+        this.pointService = new PointService(this.userPointTable,this.pointHistoryTable);
     }
 
     /**
@@ -126,4 +131,15 @@ public class UserPointTableTest {
         assertThrows(RuntimeException.class, () -> pointService.use(givenUser, -10L));
     }
 
+    /**
+     * 신규 유저는 충전 히스토리가 비어있어야 합니다.
+     */
+    @Test
+    void 신규유저는_충전_히스토리가_비어있다() {
+        long givenUser = 1L;
+
+        List<PointHistory> history = pointService.getUserPointHistories(givenUser);
+
+        assertTrue(history.isEmpty());
+    }
 }
