@@ -26,7 +26,9 @@ public class PointService {
         UserPoint oldUserPoint = userPointTable.selectById(userId);
         // 기존 유저의 Point에 새로 충전할 양을 추가(신규 유저는 Default, 즉 0 Point 반환)
         long newAmount = oldUserPoint.point() + amount;
-        return userPointTable.insertOrUpdate(userId, newAmount);
+        UserPoint newUserPoint = userPointTable.insertOrUpdate(userId, newAmount);
+        pointHistoryTable.insert(userId, amount, TransactionType.CHARGE, System.currentTimeMillis());
+        return newUserPoint;
     }
 
     public UserPoint use(long userId, long amount) {
@@ -38,11 +40,13 @@ public class PointService {
             throw new RuntimeException("잔고 부족");
         // 기존 유저의 Point에 새로 차감할 양을 빼기(신규 유저는 Default, 즉 0 Point 반환)
         long newAmount = oldUserPoint.point() - amount;
-        return userPointTable.insertOrUpdate(userId, newAmount);
+
+        UserPoint newUserPoint = userPointTable.insertOrUpdate(userId, newAmount);
+        pointHistoryTable.insert(userId, amount, TransactionType.USE, System.currentTimeMillis());
+        return newUserPoint;
     }
 
-    public List<PointHistory> getUserPointHistories(long userId)
-    {
+    public List<PointHistory> getUserPointHistories(long userId) {
         return pointHistoryTable.selectAllByUserId(userId);
     }
 }

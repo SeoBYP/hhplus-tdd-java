@@ -59,7 +59,7 @@ public class UserPointTableTest {
      * 기존 유저는 기존 포인트에서 누적되어야 합니다.
      */
     @Test
-    void 기존_유저의_충전_테이블에_포인트가_누적된다() { // throws 절 제거
+    void 기존_유저의_충전_테이블에_포인트가_누적된다() {
         long givenUser = 1L;
         long givenPoint = 100L;
         // given
@@ -78,7 +78,7 @@ public class UserPointTableTest {
      * 기존 유저가 포인트를 사용하면 기존 포인트에서 포인트가 차감되어야 합니다
      */
     @Test
-    void 기존_유저의_충전_테이블에_포인트가_차감된다() { // throws 절 제거
+    void 기존_유저의_충전_테이블에_포인트가_차감된다() {
         long givenUser = 1L;
         long givenPoint = 100L;
         // given
@@ -97,7 +97,7 @@ public class UserPointTableTest {
      * 잔액이 부족하면 예외가 발생합니다.
      */
     @Test
-    void 잔액부족_포인트_사용시_예외가_발생한다() { // throws 절 제거
+    void 잔액부족_포인트_사용시_예외가_발생한다() {
         // given
         long givenUser = 1L;
         long givenPoint = 100L;
@@ -117,7 +117,7 @@ public class UserPointTableTest {
      * 음수 충전은 발생해서는 안됩니다.
      */
     @Test
-    void 음수_충전은_거부되어야_한다() { // throws 절 제거
+    void 음수_충전은_거부되어야_한다() {
         long givenUser = 1L;
         assertThrows(RuntimeException.class, () -> pointService.charge(givenUser, -10L));
     }
@@ -126,7 +126,7 @@ public class UserPointTableTest {
      * 음수 사용은 발생해서는 안됩니다.
      */
     @Test
-    void 음수_사용은_거부되어야_한다() { // throws 절 제거
+    void 음수_사용은_거부되어야_한다() {
         long givenUser = 1L;
         assertThrows(RuntimeException.class, () -> pointService.use(givenUser, -10L));
     }
@@ -141,5 +141,53 @@ public class UserPointTableTest {
         List<PointHistory> history = pointService.getUserPointHistories(givenUser);
 
         assertTrue(history.isEmpty());
+    }
+
+    /**
+     * 충전시 히스토리가 생성되고 UserId, Amount, TransactionType, udpateMillis가 정확하게 기록되어야 합니다.
+     */
+    @Test
+    void 충전_시_히스토리가_1건_생성되고_필드값이_정확하다() { // throws 절 제거
+        // given
+        long givenUser = 1L;
+        long givenPoint = 100L;
+
+        // when
+        pointService.charge(givenUser, givenPoint);
+        List<PointHistory> history = pointService.getUserPointHistories(givenUser);
+
+        //then
+        assertEquals(1, history.size());
+
+        PointHistory h = history.get(0);
+        assertEquals(givenUser, h.userId());
+        assertEquals(givenPoint, h.amount());
+        assertEquals(TransactionType.CHARGE, h.type());
+        assertTrue(h.updateMillis() <= System.currentTimeMillis());
+    }
+
+    /**
+     * 충전시 히스토리가 생성되고 UserId, Amount, TransactionType, udpateMillis가 정확하게 기록되어야 합니다.
+     */
+    @Test
+    void 차감_시_히스토리가_1건_생성되고_필드값이_정확하다() {
+        // given
+        long givenUser = 1L;
+        long givenPoint = 100L;
+        userPointTable.insertOrUpdate(givenUser, givenPoint);
+
+        // when
+        long useAmount = 50L;
+        pointService.use(givenUser, useAmount);
+        List<PointHistory> history = pointService.getUserPointHistories(givenUser);
+
+        //then
+        assertEquals(1, history.size());
+
+        PointHistory h = history.get(0);
+        assertEquals(givenUser, h.userId());
+        assertEquals(useAmount, h.amount());
+        assertEquals(TransactionType.USE, h.type());
+        assertTrue(h.updateMillis() <= System.currentTimeMillis());
     }
 }
