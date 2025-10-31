@@ -107,4 +107,14 @@ public class UserPointTableTest {
         // 그리고 포인트는 그대로 유지되어야 함
         assertEquals(givenPoint, pointService.getUserPoint(givenUser).point());
     }
+
+    /**
+     * 음수 충전은 발생해서는 안됩니다.
+     */
+    @Test
+    void 음수_충전은_거부되어야_한다() { // throws 절 제거
+        long givenUser = 1L;
+        assertThrows(RuntimeException.class, () -> pointService.charge(givenUser, -10L));
+    }
+
 }
