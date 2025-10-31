@@ -253,4 +253,34 @@ public class UserPointTableTest {
         assertEquals(givenUserPoint_2, h2.get(0).amount());
     }
 
+    /**
+     * 충전 히스토리의 충전, 차감의 합계는 유저의 잔액이랑 일치해야 합니다.
+     */
+    @Test
+    void 이력의_합계와_현재_잔액이_일관적이어야_한다() { // throws 절 제거
+        // given
+        long givenUser = 1L;
+        long firstCharge = 100L;
+        long secondCharge = 120L;
+        long useAmount = 50L;
+        // when
+        pointService.charge(givenUser, firstCharge);
+        pointService.charge(givenUser, secondCharge);
+        pointService.use(givenUser, useAmount);
+
+        // then
+        UserPoint up = pointService.getUserPoint(givenUser);
+        List<PointHistory> history = pointService.getUserPointHistories(givenUser);
+
+        long chargeSum = history.stream()
+                .filter(h -> h.type() == TransactionType.CHARGE)
+                .mapToLong(PointHistory::amount)
+                .sum();
+        long useSum = history.stream()
+                .filter(h -> h.type() == TransactionType.USE)
+                .mapToLong(PointHistory::amount)
+                .sum();
+
+        assertEquals(chargeSum - useSum, up.point());
+    }
 }
