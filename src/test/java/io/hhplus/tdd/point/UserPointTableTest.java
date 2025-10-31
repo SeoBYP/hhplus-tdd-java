@@ -8,6 +8,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -198,7 +201,7 @@ public class UserPointTableTest {
      * 2회 이상 충전시에는 충전 히스토리가 항상 최신순으로 정렬되어야 합니다.
      */
     @Test
-    void 다건_충전_시_히스토리는_최신순으로_정렬된다() { // throws 절 제거
+    void 다건_충전_시_히스토리는_최신순으로_정렬된다() {
         // given
         long givenUser = 1L;
         long firstCharge = 100L;
@@ -228,7 +231,7 @@ public class UserPointTableTest {
      * 다수의 유저가 충전시에는 구분되어서 히스토리가 기록되어야 합니다.
      */
     @Test
-    void 히스토리는_사용자별로_격리되어야_한다() { // throws 절 제거
+    void 히스토리는_사용자별로_격리되어야_한다() {
         // given
         long givenUser_1 = 1L;
         long givenUserPoint_1 = 100L;
@@ -257,7 +260,7 @@ public class UserPointTableTest {
      * 충전 히스토리의 충전, 차감의 합계는 유저의 잔액이랑 일치해야 합니다.
      */
     @Test
-    void 이력의_합계와_현재_잔액이_일관적이어야_한다() { // throws 절 제거
+    void 이력의_합계와_현재_잔액이_일관적이어야_한다() {
         // given
         long givenUser = 1L;
         long firstCharge = 100L;
@@ -282,5 +285,44 @@ public class UserPointTableTest {
                 .sum();
 
         assertEquals(chargeSum - useSum, up.point());
+    }
+
+    /*
+     * 동시에 여러 충전이 들어와도 모든 작업이 정상적으로 실행되어야 한다.
+     */
+    @Test
+    void 동시에_여러_충전이_들어와도_모든_작업이_실행된_후_검증한다() throws Exception {
+        long userId = 1L;
+
+        int threads = 10;
+        int perThreadCalls = 10; // 증폭해서 레이스 잘 드러내기
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+
+        CountDownLatch start = new CountDownLatch(1);   // 동시에 출발
+        CountDownLatch done = new CountDownLatch(threads);
+
+        for (int t = 0; t < threads; t++) {
+            pool.submit(() -> {
+                try {
+                    start.await();
+                    for (int i = 0; i < perThreadCalls; i++) {
+                        pointService.charge(userId, 1L); // 총 기대값 = threads * perThreadCalls
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    done.countDown();
+                }
+            });
+        }
+
+        start.countDown();      // 일제히 시작
+        done.await();           // 전부 끝날 때까지 대기
+
+        long expected = threads * perThreadCalls;
+        long actual = pointService.getUserPoint(userId).point();
+
+        // 잠금 적용 후에는 아래로 바꿔서 '정확히 맞는지' 검증
+        assertEquals(expected, actual);
     }
 }
