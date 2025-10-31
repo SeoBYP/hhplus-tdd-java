@@ -24,4 +24,13 @@ public class PointService {
         long newAmount = oldUserPoint.point() + amount;
         return userPointTable.insertOrUpdate(userId, newAmount);
     }
+
+    public UserPoint use(long userId, long amount)
+    {
+        // 기존에 유저가 있는 지 확인
+        UserPoint oldUserPoint = userPointTable.selectById(userId);
+        // 기존 유저의 Point에 새로 충전할 양을 추가(신규 유저는 Default, 즉 0 Point 반환)
+        long newAmount = oldUserPoint.point() - amount;
+        return userPointTable.insertOrUpdate(userId, newAmount);
+    }
 }

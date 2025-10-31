@@ -68,4 +68,22 @@ public class UserPointTableTest {
         assertEquals(givenPoint + chargeAmount, newUp.point());
     }
 
+    /**
+     * 기존 유저가 포인트를 사용하면 기존 포인트에서 포인트가 차감되어야 합니다
+     */
+    @Test
+    void 기존_유저의_충전_테이블에_포인트가_차감된다() { // throws 절 제거
+        long givenUser = 1L;
+        long givenPoint = 100L;
+        // given
+        pointService.charge(givenUser, givenPoint);
+
+        // when & then
+        long useAmount = 50L;
+        UserPoint up = pointService.use(givenUser, useAmount);
+
+        // 갱신된 Point로 되어있는 지 확인
+        assertEquals(givenUser, up.id());
+        assertEquals(givenPoint - useAmount, up.point());
+    }
 }
