@@ -2,9 +2,11 @@ package io.hhplus.tdd.point;
 
 import io.hhplus.tdd.database.PointHistoryTable;
 import io.hhplus.tdd.database.UserPointTable;
+import io.hhplus.tdd.timeProvider.TimeProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -12,6 +14,7 @@ import java.util.List;
 public class PointService {
     private final UserPointTable userPointTable;
     private final PointHistoryTable pointHistoryTable;
+    private final TimeProvider timeProvider;
 
     /// 들어오는 UserId에 대한 Table 조회
     /// 신규 유저는 Default 반환
@@ -27,7 +30,7 @@ public class PointService {
         // 기존 유저의 Point에 새로 충전할 양을 추가(신규 유저는 Default, 즉 0 Point 반환)
         long newAmount = oldUserPoint.point() + amount;
         UserPoint newUserPoint = userPointTable.insertOrUpdate(userId, newAmount);
-        pointHistoryTable.insert(userId, amount, TransactionType.CHARGE, System.currentTimeMillis());
+        pointHistoryTable.insert(userId, amount, TransactionType.CHARGE, timeProvider.currentTimeMillis());
         return newUserPoint;
     }
 
@@ -42,11 +45,14 @@ public class PointService {
         long newAmount = oldUserPoint.point() - amount;
 
         UserPoint newUserPoint = userPointTable.insertOrUpdate(userId, newAmount);
-        pointHistoryTable.insert(userId, amount, TransactionType.USE, System.currentTimeMillis());
+        pointHistoryTable.insert(userId, amount, TransactionType.USE, timeProvider.currentTimeMillis());
         return newUserPoint;
     }
 
     public List<PointHistory> getUserPointHistories(long userId) {
-        return pointHistoryTable.selectAllByUserId(userId);
+        return pointHistoryTable.selectAllByUserId(userId)
+                .stream()
+                .sorted(Comparator.comparingLong(PointHistory::updateMillis).reversed())
+                .toList();
     }
 }

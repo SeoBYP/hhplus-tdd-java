@@ -2,6 +2,8 @@ package io.hhplus.tdd.point;
 
 import io.hhplus.tdd.database.PointHistoryTable;
 import io.hhplus.tdd.database.UserPointTable;
+import io.hhplus.tdd.timeProvider.FakeTimeProvider;
+import io.hhplus.tdd.timeProvider.TimeProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -14,13 +16,14 @@ public class UserPointTableTest {
     private UserPointTable userPointTable;
     private PointHistoryTable pointHistoryTable;
     private PointService pointService;
+    private FakeTimeProvider fakeTimeProvider;
 
     @BeforeEach
-    void setUp(){
+    void setUp() {
         this.userPointTable = new UserPointTable();
         this.pointHistoryTable = new PointHistoryTable();
-
-        this.pointService = new PointService(this.userPointTable,this.pointHistoryTable);
+        this.fakeTimeProvider = new FakeTimeProvider();
+        this.pointService = new PointService(this.userPointTable, this.pointHistoryTable, this.fakeTimeProvider);
     }
 
     /**
@@ -189,5 +192,35 @@ public class UserPointTableTest {
         assertEquals(useAmount, h.amount());
         assertEquals(TransactionType.USE, h.type());
         assertTrue(h.updateMillis() <= System.currentTimeMillis());
+    }
+
+    /**
+     * 2회 이상 충전시에는 충전 히스토리가 항상 최신순으로 정렬되어야 합니다.
+     */
+    @Test
+    void 다건_충전_시_히스토리는_최신순으로_정렬된다() { // throws 절 제거
+        // given
+        long givenUser = 1L;
+        long firstCharge = 100L;
+        long secondCharge = 120L;
+
+        // when
+        pointService.charge(givenUser, firstCharge); // 이때 시간 0L
+        fakeTimeProvider.advance(10); // 시간을 10ms 진행
+        pointService.charge(givenUser, secondCharge); // 이때 시간 10L
+
+        List<PointHistory> history = pointService.getUserPointHistories(givenUser);
+
+        // then
+        assertEquals(2, history.size(), "충전 이력은 2건이어야 한다.");
+
+        // 최신순 정렬 검증 (두 번째 충전(10L)이 첫 번째(0L)보다 먼저 나와야 함)
+        assertTrue(history.get(0).updateMillis() > history.get(1).updateMillis(),
+                "첫 번째 이력이 두 번째보다 최신이어야 한다.");
+
+        assertEquals(secondCharge, history.get(0).amount(), "가장 최근 충전 금액은 120이어야 한다.");
+        assertEquals(10L, history.get(0).updateMillis(), "가장 최근 시간은 10L여야 한다.");
+        assertEquals(firstCharge, history.get(1).amount(), "그 다음 충전 금액은 100이어야 한다.");
+        assertEquals(0L, history.get(1).updateMillis(), "그 다음 시간은 0L여야 한다.");
     }
 }
